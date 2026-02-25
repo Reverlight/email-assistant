@@ -12,3 +12,4 @@ requirements.txt
 # Virtual environments
 .venv
 .venv-1
+google-token.json
