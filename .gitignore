@@ -6,5 +6,7 @@ dist/
 wheels/
 *.egg-info
 todo.txt
+requirements.txt
 # Virtual environments
 .venv
+.venv-1
