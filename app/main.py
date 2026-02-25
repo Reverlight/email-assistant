@@ -22,6 +22,7 @@ def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
 
+
 @app.get("/emails")
 def read_root():
     """Shows basic usage of the Gmail API. Lists the user's Gmail labels."""
