@@ -13,3 +13,6 @@ requirements.txt
 .venv
 .venv-1
 google-token.json
+=======
+google-token.json
+test.py
