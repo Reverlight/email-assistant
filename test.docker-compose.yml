@@ -21,12 +21,8 @@ services:
       - .env
     ports:
       - "5433:5432"
-    volumes:
-      - postgres_test_data:/var/lib/postgresql/data
     environment:
       # Use the variables from your .env
       - POSTGRES_DB=${TEST_POSTGRES_DB}
       - POSTGRES_USER=${TEST_POSTGRES_USER}
       - POSTGRES_PASSWORD=${TEST_POSTGRES_PASSWORD}
-volumes:
-  postgres_test_data:

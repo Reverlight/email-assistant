@@ -22,15 +22,11 @@ async_engine = create_async_engine(
 )
 
 # Create tables at start of session, drop at end
-@pytest_asyncio.fixture(scope='session')
+@pytest_asyncio.fixture(scope='function')
 async def async_db_engine():
-    async with async_engine.begin() as conn:
-        # run_sync requires a reference to your metadata
+    async with create_async_engine(settings.TEST_QLALCHEMY_DATABASE_URL, echo=True).begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-    yield async_engine
-
-    async with async_engine.begin() as conn:
+        yield conn
         await conn.run_sync(Base.metadata.drop_all)
 
 # Database session fixture with truncation for isolation
@@ -54,7 +50,7 @@ async def async_db(async_db_engine) -> AsyncGenerator[AsyncSession, None]:
         await session.commit()
 
 
-@pytest_asyncio.fixture(scope='session')
+@pytest_asyncio.fixture(scope='function')
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     # Use ASGITransport for modern HTTPX (0.21.0+)
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as ac:
