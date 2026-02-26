@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+import pytest_asyncio
 
 from app import settings
 
@@ -27,6 +28,7 @@ class Base(AsyncAttrs, DeclarativeBase):
         datetime.datetime: DateTime(timezone=True),
     } 
 
+
 engine = create_async_engine(
     settings.SQLALCHEMY_DATABASE_URL,
     echo=settings.SQLALCHEMY_ECHO,
@@ -34,6 +36,7 @@ engine = create_async_engine(
 
 async_sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
 
+@pytest_asyncio.fixture(scope='session')
 async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_sessionmaker() as session:
         yield session

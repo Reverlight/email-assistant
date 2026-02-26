@@ -7,11 +7,32 @@ requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
+    "coverage>=7.13.4",
     "fastapi>=0.132.0",
     "google-api-python-client>=2.190.0",
     "google-auth-httplib2>=0.3.0",
     "google-auth-oauthlib>=1.2.4",
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
     "python-dotenv>=1.2.1",
     "sqlalchemy>=2.0.46",
     "uvicorn[standard]>=0.41.0",
+]
+[tool.pytest.ini_options]
+# Adds the current directory to sys.path so 'import app' works
+pythonpath = ["."]
+# Tells pytest where to look for tests by default
+testpaths = ["app/tests"]
+# Ensures pytest recognizes files that don't start with 'test_' if needed
+python_files = ["test_*.py", "*_test.py"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/tests/*"]
+
+[tool.uv]
+# Ensures uv syncs the project as an editable package if needed
+dev-dependencies = [
+    "pytest-asyncio>=0.24.0",
 ]

@@ -9,5 +9,7 @@ RUN pip install uv
 # Copy app code
 COPY . .
 
+RUN uv sync
+
 # Expose port
 EXPOSE 8000
