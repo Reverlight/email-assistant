@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 
@@ -31,17 +32,26 @@ class EmailCreate(BaseModel):
     thread: str
     received_date: datetime.datetime
 
-@app.post("/emails/", status_code=201)
-async def create_email(
-    email_data: EmailCreate, 
-    db: AsyncSession = Depends(get_async_db_session)
-):
-    new_email = Email(**email_data.model_dump())
-    db.add(new_email)
-    await db.commit()
-    await db.refresh(new_email)
-    return new_email
 
+@app.post("/emails", status_code=201)
+async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session)):
+    email_client = EmailClient()
+    result = await asyncio.to_thread(email_client.fetch_emails)  # EmailClient is sync, run in thread
+    
+    saved = []
+    for email_dict in result["emails"]:
+        new_email = Email(
+            title=email_dict["subject"],
+            text=email_dict["body"] or email_dict["snippet"],
+            sender=email_dict["sender"],
+            thread=email_dict["thread_id"],
+            received_date=email_dict["received_date"],
+        )
+        db.add(new_email)
+        saved.append(new_email)
+    
+    await db.commit()
+    return {"saved": len(saved)}
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str | None = None):
