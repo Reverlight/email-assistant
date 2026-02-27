@@ -21,6 +21,7 @@ dependencies = [
     "sqlalchemy>=2.0.46",
     "uvicorn[standard]>=0.41.0",
     "pytest-asyncio>=0.24.0",
+    "black>=26.1.0",
 ]
 [tool.pytest.ini_options]
 # Adds the current directory to sys.path so 'import app' works

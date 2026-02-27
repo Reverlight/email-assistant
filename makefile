@@ -14,4 +14,4 @@ pylint:
 	docker compose exec web uv run pylint app
 
 isort:
-	docker compose exec web uv run isort . --skip .venv
+	docker compose exec web uv run isort . --skip .venv --skip .venv-1

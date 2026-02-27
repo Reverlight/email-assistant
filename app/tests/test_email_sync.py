@@ -1,16 +1,14 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app.email_sync import EmailClient
 import pytest
-from httpx import AsyncClient
 from fastapi import status
-import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Email
-from datetime import datetime, timezone
 
+from app.email_sync import EmailClient
+from app.models import Email
 
 
 @pytest.mark.asyncio
@@ -37,7 +35,9 @@ async def test_fetch_and_save_emails(async_client: AsyncClient, async_db: AsyncS
     }
 
     with patch.object(EmailClient, "fetch_emails", return_value=mock_emails):
-        response = await async_client.post("/emails", )
+        response = await async_client.post(
+            "/emails",
+        )
 
     assert response.status_code == 201
     assert response.json() == {"saved": 2}

@@ -1,5 +1,7 @@
-from app import settings
 import httpx
+
+from app import settings
+
 
 class ShopifyClient:
     def __init__(self, shop: str, access_token: str):
@@ -22,7 +24,7 @@ class ShopifyClient:
                     "grant_type": "client_credentials",
                     "client_id": settings.SHOPIFY_CLIENT_ID,
                     "client_secret": settings.SHOPIFY_CLIENT_SECRET,
-                }
+                },
             )
             response.raise_for_status()
             token = response.json()["access_token"]
@@ -30,8 +32,7 @@ class ShopifyClient:
 
     async def _query(self, query: str, variables: dict = None) -> dict:
         response = await self.client.post(
-            self.base_url,
-            json={"query": query, "variables": variables or {}}
+            self.base_url, json={"query": query, "variables": variables or {}}
         )
         response.raise_for_status()
         data = response.json()
@@ -72,7 +73,9 @@ class ShopifyClient:
         """
         return await self._query(query, {"id": f"gid://shopify/Order/{order_id}"})
 
-    async def refund_order(self, order_id: str, line_items: list = None, shipping_amount: str = None) -> dict:
+    async def refund_order(
+        self, order_id: str, line_items: list = None, shipping_amount: str = None
+    ) -> dict:
         query = """
         mutation RefundCreate($input: RefundInput!) {
             refundCreate(input: $input) {
@@ -99,7 +102,11 @@ class ShopifyClient:
                     }
                     for item in (line_items or [])
                 ],
-                "shipping": {"fullRefund": True} if not shipping_amount else {"amount": shipping_amount},
+                "shipping": (
+                    {"fullRefund": True}
+                    if not shipping_amount
+                    else {"amount": shipping_amount}
+                ),
             }
         }
         data = await self._query(query, variables)
