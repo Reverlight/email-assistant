@@ -82,5 +82,17 @@ async def read_root(order_id: str):
         try:
             order = await shopify.fetch_order_details(order_id)
         except Exception as e:
+            # TODO REWORK EXCEPTION TO ACTUALLY CATCH 404
             raise HTTPException(status_code=404, detail="Order not found")
     return {"order": order}
+
+
+@app.get("/fetch_customer_details/{email}")
+async def read_root(email: str):
+    async with await ShopifyClient.create() as shopify:
+        try:
+            customer = await shopify.fetch_customer(email)
+        except Exception as e:
+            # TODO REWORK EXCEPTION TO ACTUALLY CATCH 404
+            raise HTTPException(status_code=404, detail="Customer not found")
+    return {"customer": customer}

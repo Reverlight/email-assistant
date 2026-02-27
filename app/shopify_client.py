@@ -125,8 +125,8 @@ class ShopifyClient:
                         firstName
                         lastName
                         phone
-                        ordersCount
-                        totalSpentV2 { amount currencyCode }
+                        numberOfOrders
+                        amountSpent { amount currencyCode }
                     }
                 }
             }
