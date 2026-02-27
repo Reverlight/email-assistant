@@ -89,9 +89,19 @@ async def test_fetch_order_details_not_found(async_client: AsyncClient):
     assert response.status_code == 404
 
 
+@pytest.fixture
+def mock_shopify():
+    with patch("app.main.ShopifyClient.create", new_callable=AsyncMock) as mock_create:
+        mock_instance = AsyncMock()
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=None)
+        mock_create.return_value = mock_instance
+        yield mock_instance
+
+
 @pytest.mark.asyncio
-async def test_fetch_customer(async_client: AsyncClient):
-    mock_customer = {
+async def test_fetch_customer(async_client: AsyncClient, mock_shopify):
+    mock_shopify.fetch_customer.return_value = {
         "id": "gid://shopify/Customer/9182743625817",
         "email": "ayumu.hirano@example.com",
         "firstName": "Ayumu",
@@ -104,15 +114,7 @@ async def test_fetch_customer(async_client: AsyncClient):
         },
     }
 
-    with patch("app.main.ShopifyClient.create", new_callable=AsyncMock) as mock_create:
-        mock_shopify = AsyncMock()
-        mock_shopify.fetch_customer.return_value = mock_customer
-        mock_shopify.__aenter__ = AsyncMock(return_value=mock_shopify)
-        mock_shopify.__aexit__ = AsyncMock(return_value=None)
-        mock_create.return_value = mock_shopify
-
-        response = await async_client.get("/fetch_customer_details/ayumu.hirano@example.com")
-
+    response = await async_client.get("/fetch_customer_details/ayumu.hirano@example.com")
     assert response.status_code == 200
     customer = response.json()["customer"]
     assert customer["id"] == "gid://shopify/Customer/9182743625817"
@@ -126,12 +128,8 @@ async def test_fetch_customer(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_fetch_customer_not_found(async_client: AsyncClient):
-    with patch(
-        "app.shopify_client.ShopifyClient.fetch_customer",
-        new_callable=AsyncMock,
-        side_effect=Exception("Customer not found"),
-    ):
-        response = await async_client.get("/fetch_customer_details/0000000000000")
+async def test_fetch_customer_not_found(async_client: AsyncClient, mock_shopify):
+    mock_shopify.fetch_customer.side_effect = Exception()
 
+    response = await async_client.get("/fetch_customer_details/ayumu.hirano@example.com")
     assert response.status_code == 404
