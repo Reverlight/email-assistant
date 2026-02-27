@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import os
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from httplib2 import Credentials
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -16,6 +16,7 @@ from app.db import get_async_db_session
 from app.email_sync import EmailClient
 from app.models import Email
 from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
+from app.shopify_client import ShopifyClient
 
 
 app = FastAPI()
@@ -71,7 +72,11 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/run_shopify_action")
-def read_root():
-    # RUN SHOPIFY 
-    return {"Hello": "World"}
+@app.get("/fetch_order_details/{order_id}")
+async def read_root(order_id: str):
+    async with await ShopifyClient.create() as shopify:
+        try:
+            order = await shopify.fetch_order_details(order_id)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail="Order not found")
+    return {'order': order}
