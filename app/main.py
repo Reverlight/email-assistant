@@ -37,6 +37,7 @@ class EmailCreate(BaseModel):
 
 @app.post("/emails", status_code=201)
 async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session)):
+    # TODO. Add google id of email and search it, if it exist skip saving
     email_client = EmailClient()
     result = await asyncio.to_thread(
         email_client.fetch_emails
@@ -62,6 +63,10 @@ async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session))
 def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
+@app.get("/emails", status_code=201)
+async def read_emails(db: AsyncSession = Depends(get_async_db_session)):
+    # get all emails
+    pass
 
 
 @app.get("/process_email_thread")
