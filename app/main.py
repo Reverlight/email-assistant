@@ -55,18 +55,13 @@ async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session))
         saved.append(new_email)
 
     await db.commit()
-    return {"saved": len(saved)}
+    return {"saved": len(saved), 'data': result}
 
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
-
-@app.get("/emails")
-def read_root():
-    email_client = EmailClient()
-    return email_client.fetch_emails()
 
 
 @app.get("/process_email_thread")

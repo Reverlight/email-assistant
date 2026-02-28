@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 from datetime import datetime, timezone
 
@@ -19,6 +20,52 @@ class EmailClient:
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
         self.service = build("gmail", "v1", credentials=creds)
 
+    def get_message(self, msg):
+        txt = (
+                self.service.users()
+                .messages()
+                .get(
+                    userId="me", id=msg["id"], format="full"  # ensures body is included
+                )
+                .execute()
+            )
+
+        payload = txt.get("payload", {})
+        headers = payload.get("headers", [])
+
+        # Helper to extract header by name
+        def get_header(name):
+            return next(
+                (h["value"] for h in headers if h["name"].lower() == name.lower()),
+                None,
+            )
+
+        subject = get_header("Subject") or "No Subject"
+        sender = get_header("From") or ""
+        date_str = get_header("Date")
+        thread_id = txt.get("threadId", "")
+
+        # Parse date
+        internal_date_ms = txt.get(
+            "internalDate"
+        )  # comes as a string e.g. "1554492714000"
+        received_date = None
+        if internal_date_ms:
+            received_date = datetime.fromtimestamp(
+                int(internal_date_ms) / 1000, tz=timezone.utc
+            )
+
+        # Extract body text
+        body = self._extract_body(payload)
+        data = {"id": msg["id"],
+                    "subject": subject,
+                    "snippet": txt.get("snippet", ""),
+                    "sender": sender,
+                    "thread_id": thread_id,
+                    "received_date": received_date,
+                    "body": body,}
+        return data
+    
     def fetch_emails(self, last_email_date=None):
         query = "-label:spam -label:trash"
         results = (
@@ -31,60 +78,17 @@ class EmailClient:
             )
             .execute()
         )
+
         messages = results.get("messages", [])
 
         email_data = []
 
         for msg in messages:
-            txt = (
-                self.service.users()
-                .messages()
-                .get(
-                    userId="me", id=msg["id"], format="full"  # ensures body is included
-                )
-                .execute()
-            )
-
-            payload = txt.get("payload", {})
-            headers = payload.get("headers", [])
-
-            # Helper to extract header by name
-            def get_header(name):
-                return next(
-                    (h["value"] for h in headers if h["name"].lower() == name.lower()),
-                    None,
-                )
-
-            subject = get_header("Subject") or "No Subject"
-            sender = get_header("From") or ""
-            date_str = get_header("Date")
-            thread_id = txt.get("threadId", "")
-
-            # Parse date
-            internal_date_ms = txt.get(
-                "internalDate"
-            )  # comes as a string e.g. "1554492714000"
-            received_date = None
-            if internal_date_ms:
-                received_date = datetime.fromtimestamp(
-                    int(internal_date_ms) / 1000, tz=timezone.utc
-                )
-
-            # Extract body text
-            body = self._extract_body(payload)
+            data = self.get_message(msg)
 
             email_data.append(
-                {
-                    "id": msg["id"],
-                    "subject": subject,
-                    "snippet": txt.get("snippet", ""),
-                    "sender": sender,
-                    "thread_id": thread_id,
-                    "received_date": received_date,
-                    "body": body,
-                }
+                data
             )
-
         return {"total": len(email_data), "emails": email_data}
 
     def _extract_body(self, payload):
