@@ -22,13 +22,11 @@ class EmailClient:
 
     def get_message(self, msg):
         txt = (
-                self.service.users()
-                .messages()
-                .get(
-                    userId="me", id=msg["id"], format="full"  # ensures body is included
-                )
-                .execute()
-            )
+            self.service.users()
+            .messages()
+            .get(userId="me", id=msg["id"], format="full")  # ensures body is included
+            .execute()
+        )
 
         payload = txt.get("payload", {})
         headers = payload.get("headers", [])
@@ -57,15 +55,17 @@ class EmailClient:
 
         # Extract body text
         body = self._extract_body(payload)
-        data = {"id": msg["id"],
-                    "subject": subject,
-                    "snippet": txt.get("snippet", ""),
-                    "sender": sender,
-                    "thread_id": thread_id,
-                    "received_date": received_date,
-                    "body": body,}
+        data = {
+            "id": msg["id"],
+            "subject": subject,
+            "snippet": txt.get("snippet", ""),
+            "sender": sender,
+            "thread_id": thread_id,
+            "received_date": received_date,
+            "body": body,
+        }
         return data
-    
+
     def fetch_emails(self, last_email_date=None):
         query = "-label:spam -label:trash"
         results = (
@@ -86,9 +86,7 @@ class EmailClient:
         for msg in messages:
             data = self.get_message(msg)
 
-            email_data.append(
-                data
-            )
+            email_data.append(data)
         return {"total": len(email_data), "emails": email_data}
 
     def _extract_body(self, payload):
