@@ -76,6 +76,18 @@ class ShopifyClient:
     async def refund_order(
         self, order_id: str, line_items: list = None, shipping_amount: str = None
     ) -> dict:
+        # No line_items = full refund, auto-fetch all items
+        if line_items is None:
+            order_data = await self.fetch_order_details(order_id)
+            order = order_data["order"]
+            line_items = [
+                {
+                    "line_item_id": edge["node"]["id"].split("/")[-1],
+                    "quantity": edge["node"]["quantity"],
+                    "restock_type": "NO_RESTOCK",
+                }
+                for edge in order["lineItems"]["edges"]
+            ]
         query = """
         mutation RefundCreate($input: RefundInput!) {
             refundCreate(input: $input) {

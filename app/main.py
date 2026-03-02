@@ -15,8 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_async_db_session
 from app.email_sync import EmailClient
 from app.models import Email
-from app.settings import (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-                          GOOGLE_PROJECT_ID)
+from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
 from app.shopify_client import ShopifyClient
 
 app = FastAPI()
@@ -56,43 +55,25 @@ async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session))
         saved.append(new_email)
 
     await db.commit()
-    return {"saved": len(saved), 'data': result}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
-
-@app.get("/emails", status_code=201)
-async def read_emails(db: AsyncSession = Depends(get_async_db_session)):
-    # get all emails
-    pass
-
-
-@app.get("/process_email_thread")
-def read_root():
-    # RETURN POSSIBLE ACTIONS (with draft placeholders)
-    # actions like: refund, get order, summarize (this is always present)
-    return {"Hello": "World"}
+    return {"saved": len(saved), "data": result}
 
 
 @app.get("/fetch_order_details/{order_id}")
 async def read_root(order_id: str):
     async with await ShopifyClient.create() as shopify:
-        try:
-            order = await shopify.fetch_order_details(order_id)
-        except Exception as e:
-            # TODO REWORK EXCEPTION TO ACTUALLY CATCH 404
-            raise HTTPException(status_code=404, detail="Order not found")
+        order = await shopify.fetch_order_details(order_id)
     return {"order": order}
 
 
 @app.get("/fetch_customer_details/{email}")
 async def read_root(email: str):
     async with await ShopifyClient.create() as shopify:
-        try:
-            customer = await shopify.fetch_customer(email)
-        except Exception as e:
-            # TODO REWORK EXCEPTION TO ACTUALLY CATCH 404
-            raise HTTPException(status_code=404, detail="Customer not found")
+        customer = await shopify.fetch_customer(email)
     return {"customer": customer}
+
+
+@app.post("/refund_order/{order_id}")
+async def read_root(order_id: str):
+    async with await ShopifyClient.create() as shopify:
+        refund_data = await shopify.refund_order(order_id=order_id)
+    return {"refund_data": refund_data}

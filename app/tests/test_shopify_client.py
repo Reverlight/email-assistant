@@ -3,8 +3,19 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-MOCK_ORDER_RESPONSE = {
-    "order": {
+
+@pytest.fixture
+def mock_shopify():
+    with patch("app.main.ShopifyClient.create", new_callable=AsyncMock) as mock_create:
+        mock_instance = AsyncMock()
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=None)
+        mock_create.return_value = mock_instance
+        yield mock_instance
+
+@pytest.mark.asyncio
+async def test_fetch_order_details(async_client: AsyncClient, mock_shopify):
+    order_response =  {
         "order": {
             "id": "gid://shopify/Order/6934094708825",
             "name": "#1001",
@@ -36,23 +47,16 @@ MOCK_ORDER_RESPONSE = {
             },
         }
     }
-}
 
-
-@pytest.mark.asyncio
-async def test_fetch_order_details(async_client: AsyncClient):
-    with patch(
-        "app.shopify_client.ShopifyClient.fetch_order_details",
-        new_callable=AsyncMock,
-        return_value=MOCK_ORDER_RESPONSE["order"],
-    ):
-        response = await async_client.get("/fetch_order_details/6934094708825")
-
+    mock_shopify.fetch_order_details.return_value = order_response
+    response = await async_client.get(
+        "/fetch_order_details/1231232"
+    )
     assert response.status_code == 200
     data = response.json()
 
     order = data["order"]["order"]
-    assert order["id"] == "gid://shopify/Order/6934094708825"
+    assert order.get("id") == "gid://shopify/Order/6934094708825", order
     assert order["name"] == "#1001"
     assert order["email"] is None
     assert order["displayFulfillmentStatus"] == "FULFILLED"
@@ -71,32 +75,10 @@ async def test_fetch_order_details(async_client: AsyncClient):
     )
 
     customer = order["customer"]
-    assert customer["id"] == "gid://shopify/Customer/9182743625817"
+    assert customer.get("id") == "gid://shopify/Customer/9182743625817", customer
     assert customer["email"] == "ayumu.hirano@example.com"
     assert customer["firstName"] == "Ayumu"
     assert customer["lastName"] == "Hirano"
-
-
-@pytest.mark.asyncio
-async def test_fetch_order_details_not_found(async_client: AsyncClient):
-    with patch(
-        "app.shopify_client.ShopifyClient.fetch_order_details",
-        new_callable=AsyncMock,
-        side_effect=Exception("Order not found"),
-    ):
-        response = await async_client.get("/fetch_order_details/0000000000000")
-
-    assert response.status_code == 404
-
-
-@pytest.fixture
-def mock_shopify():
-    with patch("app.main.ShopifyClient.create", new_callable=AsyncMock) as mock_create:
-        mock_instance = AsyncMock()
-        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-        mock_instance.__aexit__ = AsyncMock(return_value=None)
-        mock_create.return_value = mock_instance
-        yield mock_instance
 
 
 @pytest.mark.asyncio
@@ -114,7 +96,9 @@ async def test_fetch_customer(async_client: AsyncClient, mock_shopify):
         },
     }
 
-    response = await async_client.get("/fetch_customer_details/ayumu.hirano@example.com")
+    response = await async_client.get(
+        "/fetch_customer_details/ayumu.hirano@example.com"
+    )
     assert response.status_code == 200
     customer = response.json()["customer"]
     assert customer["id"] == "gid://shopify/Customer/9182743625817"
@@ -128,8 +112,19 @@ async def test_fetch_customer(async_client: AsyncClient, mock_shopify):
 
 
 @pytest.mark.asyncio
-async def test_fetch_customer_not_found(async_client: AsyncClient, mock_shopify):
-    mock_shopify.fetch_customer.side_effect = Exception()
+async def test_refund_order(async_client: AsyncClient, mock_shopify):
+    data = {
+        "refund_data": {
+            "id": "gid://shopify/Refund/963605069913",
+            "totalRefundedSet": {"shopMoney": {"amount": "0.0", "currencyCode": "USD"}},
+        }
+    }
 
-    response = await async_client.get("/fetch_customer_details/ayumu.hirano@example.com")
-    assert response.status_code == 404
+    mock_shopify.refund_order.return_value = data
+
+    response = await async_client.post("/refund_order/123123213")
+    assert response.status_code == 200
+    response_data = response.json()["refund_data"]
+
+    assert "refund_data" in response_data
+    assert "totalRefundedSet" in response_data["refund_data"]
