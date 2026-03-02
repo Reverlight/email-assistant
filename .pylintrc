@@ -1,0 +1,30 @@
+[MASTER]
+ignore=.venv,.venv-1,migrations
+
+[MESSAGES CONTROL]
+disable=
+    # Docstrings - not enforced
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+
+    # Imports - handled by isort, not pylint
+    import-error,
+    unused-import,
+    reimported,
+
+    # Unused variables/arguments
+    unused-variable,
+    unused-argument,
+
+    # Design warnings - too opinionated
+    too-few-public-methods,
+    too-many-locals,
+    too-many-arguments,
+
+[FORMAT]
+max-line-length=120
+
+[BASIC]
+# Allow short variable names like db, e, id
+good-names=i,j,k,e,db,id,_

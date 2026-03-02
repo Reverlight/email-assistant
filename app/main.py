@@ -2,21 +2,21 @@ import asyncio
 import datetime
 import os
 
-from fastapi import Depends, FastAPI
-from httplib2 import Credentials
+from fastapi import Depends, FastAPI, HTTPException
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from httplib2 import Credentials
 from pydantic import BaseModel
-
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db import get_async_db_session
 from app.email_sync import EmailClient
 from app.models import Email
 from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
-
+from app.shopify_client import ShopifyClient
 
 app = FastAPI()
 
@@ -24,6 +24,7 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
 
 class EmailCreate(BaseModel):
     title: str
@@ -35,9 +36,12 @@ class EmailCreate(BaseModel):
 
 @app.post("/emails", status_code=201)
 async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session)):
+    # TODO. Add google id of email and search it, if it exist skip saving
     email_client = EmailClient()
-    result = await asyncio.to_thread(email_client.fetch_emails)  # EmailClient is sync, run in thread
-    
+    result = await asyncio.to_thread(
+        email_client.fetch_emails
+    )  # EmailClient is sync, run in thread
+
     saved = []
     for email_dict in result["emails"]:
         new_email = Email(
@@ -49,29 +53,27 @@ async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session))
         )
         db.add(new_email)
         saved.append(new_email)
-    
+
     await db.commit()
-    return {"saved": len(saved)}
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
+    return {"saved": len(saved), "data": result}
 
 
-@app.get("/emails")
-def read_root():
-    email_client = EmailClient()
-    return email_client.fetch_emails()
+@app.get("/fetch_order_details/{order_id}")
+async def read_root(order_id: str):
+    async with await ShopifyClient.create() as shopify:
+        order = await shopify.fetch_order_details(order_id)
+    return {"order": order}
 
 
-@app.get("/process_email_thread")
-def read_root():
-    # RETURN POSSIBLE ACTIONS (with draft placeholders)
-    # actions like: refund, get order, summarize (this is always present)
-    return {"Hello": "World"}
+@app.get("/fetch_customer_details/{email}")
+async def read_root(email: str):
+    async with await ShopifyClient.create() as shopify:
+        customer = await shopify.fetch_customer(email)
+    return {"customer": customer}
 
 
-@app.get("/run_shopify_action")
-def read_root():
-    # RUN SHOPIFY 
-    return {"Hello": "World"}
+@app.post("/refund_order/{order_id}")
+async def read_root(order_id: str):
+    async with await ShopifyClient.create() as shopify:
+        refund_data = await shopify.refund_order(order_id=order_id)
+    return {"refund_data": refund_data}

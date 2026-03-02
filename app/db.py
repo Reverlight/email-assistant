@@ -1,15 +1,11 @@
 import datetime
 from typing import AsyncGenerator
 
-from sqlalchemy import DateTime, MetaData
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.ext.asyncio import (
-    AsyncAttrs,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
 import pytest_asyncio
+from sqlalchemy import DateTime, MetaData
+from sqlalchemy.ext.asyncio import (AsyncAttrs, AsyncSession,
+                                    async_sessionmaker, create_async_engine)
+from sqlalchemy.orm import DeclarativeBase
 
 from app import settings
 
@@ -26,7 +22,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     )
     type_annotation_map = {
         datetime.datetime: DateTime(timezone=True),
-    } 
+    }
 
 
 engine = create_async_engine(
@@ -35,6 +31,7 @@ engine = create_async_engine(
 )
 
 async_sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+
 
 async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_sessionmaker() as session:

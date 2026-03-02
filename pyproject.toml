@@ -13,11 +13,15 @@ dependencies = [
     "google-auth-httplib2>=0.3.0",
     "google-auth-oauthlib>=1.2.4",
     "httpx>=0.28.1",
+    "isort>=8.0.0",
+    "pylint>=4.0.5",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "python-dotenv>=1.2.1",
     "sqlalchemy>=2.0.46",
     "uvicorn[standard]>=0.41.0",
+    "pytest-asyncio>=0.24.0",
+    "black>=26.1.0",
 ]
 [tool.pytest.ini_options]
 # Adds the current directory to sys.path so 'import app' works
@@ -32,7 +36,3 @@ source = ["app"]
 omit = ["app/tests/*"]
 
 [tool.uv]
-# Ensures uv syncs the project as an editable package if needed
-dev-dependencies = [
-    "pytest-asyncio>=0.24.0",
-]
