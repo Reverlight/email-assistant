@@ -11,7 +11,21 @@ services:
       - .env
     depends_on:
       - db
-  
+
+  frontend:
+    build: ./frontend
+    container_name: maildesk_frontend
+    volumes:
+      - ./frontend:/app          # bind your local files
+      - /app/node_modules        # anonymous volume hides node_modules from the bind
+      - /app/.next               # same for Next.js build cache
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://web:8000
+    depends_on:
+      - web
+
   db:
     image: postgres:15
     container_name: postgres_db

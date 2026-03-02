@@ -27,6 +27,16 @@ app = FastAPI()
 def read_root():
     return {"Hello": "World"}
 
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class EmailCreate(BaseModel):
     title: str
