@@ -37,21 +37,14 @@ class EmailCreate(BaseModel):
 
 
 @app.post("/emails", status_code=201)
-async def sync_emails(db: AsyncSession = Depends(get_async_db_session)):
-    """
-    Fetch latest emails from Gmail and save new ones to the DB.
-    Already-synced emails (matched by google_id) are skipped.
-    """
+async def read_and_save_emails(db: AsyncSession = Depends(get_async_db_session)):
+    # TODO. Add google id of email and search it, if it exist skip saving
     email_client = EmailClient()
-    result = await asyncio.to_thread(email_client.fetch_emails)
+    result = await asyncio.to_thread(
+        email_client.fetch_emails
+    )  # EmailClient is sync, run in thread
 
-    # Load all google_ids that are already stored so we can skip them
-    existing_ids_result = await db.execute(select(Email.google_id))
-    existing_google_ids = {row for (row,) in existing_ids_result.all()}
-
-    saved = 0
-    skipped = 0
-
+    saved = []
     for email_dict in result["emails"]:
         if email_dict["google_id"] in existing_google_ids:
             skipped += 1
