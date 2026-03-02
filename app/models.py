@@ -16,10 +16,26 @@ class AuditMixin:
     )
 
 
-class Email(Base, AuditMixin):
-    __tablename__ = "email"
-    title: Mapped[str] = mapped_column()
-    text: Mapped[str] = mapped_column()
-    sender: Mapped[str] = mapped_column()
-    thread: Mapped[str] = mapped_column()
-    received_date: Mapped[datetime] = mapped_column()
+import datetime
+
+from sqlalchemy import String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db import Base
+
+
+class Email(Base):
+    __tablename__ = "emails"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Gmail's own message ID — used to skip duplicates on re-sync
+    google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+
+    # Gmail thread ID — groups related messages into a conversation
+    thread_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=True)
+    sender: Mapped[str] = mapped_column(String(255), nullable=False)
+    received_date: Mapped[datetime.datetime] = mapped_column(nullable=True)
