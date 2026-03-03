@@ -53,3 +53,4 @@ async def async_client(async_db: AsyncSession) -> AsyncGenerator[AsyncClient, No
         yield ac
 
     app.dependency_overrides.clear()
+

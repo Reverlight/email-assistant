@@ -67,9 +67,9 @@ async def test_fetch_emails(async_client: AsyncClient, async_db: AsyncSession):
     thread_ids = [t["id"] for t in THREADS_LIST_RESPONSE["threads"]]
 
     with (
-        patch("app.email_sync.os.path.exists", return_value=True),
-        patch("app.email_sync.Credentials.from_authorized_user_file"),
-        patch("app.email_sync.build") as mock_build,
+        patch("app.email_client.os.path.exists", return_value=True),
+        patch("app.email_client.Credentials.from_authorized_user_file"),
+        patch("app.email_client.build") as mock_build,
     ):
         mock_service = mock_build.return_value
         users = mock_service.users.return_value
