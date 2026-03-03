@@ -103,16 +103,10 @@ class TestEmails:
         result = await async_db.execute(select(Email))
         emails = result.scalars().all()
         assert len(emails) == 2
-
-    @pytest.mark.asyncio
-    async def test_emails_exist(self, async_db):
-        result = await async_db.execute(select(Email))
-        emails = result.scalars().all()
-        assert len(emails) == 2
         
 class TestSummarizeThread:
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, async_db):
+    async def setup(self, async_db, async_client):
         self.thread_id = "thread_001"
         self.other_thread_id = "thread_002"
 
@@ -191,6 +185,13 @@ class TestSummarizeThread:
 
         mock_chatgpt.summarize_thread.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
+        response = await async_client.post(f"/thread/{self.thread_id}/summarize")
+        print(response.status_code)
+        print(response.json())  # 👈 add this
+        assert response.status_code == 200
+    
 MOCK_ACTIONS = [
     {"type": "fetch_order_detail", "order_id": "4821"},
     {"type": "fetch_client_detail", "customer_email": "sarah.mitchell@example.com"},
@@ -199,7 +200,7 @@ MOCK_ACTIONS = [
 
 class TestDetectActions:
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, async_db):
+    async def setup(self, async_db, async_client):
         self.thread_id = "thread_001"
 
         self.email1 = await EmailFactory.create(
@@ -230,7 +231,7 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_returns_actions(self, async_client, mock_chatgpt):
-        response = await async_client.get(f"/thread/{self.thread_id}/actions")
+        response = await async_client.post(f"/thread/{self.thread_id}/actions")
 
         assert response.status_code == 200
         assert response.json() == {
@@ -240,7 +241,7 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_calls_chatgpt_with_formatted_thread(self, async_client, mock_chatgpt):
-        response = await async_client.get(f"/thread/{self.thread_id}/actions")
+        response = await async_client.post(f"/thread/{self.thread_id}/actions")
 
         mock_chatgpt.determine_actions.assert_called_once()
         call_arg = mock_chatgpt.determine_actions.call_args[0][0]
@@ -252,13 +253,13 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_thread_not_found(self, async_client, mock_chatgpt):
-        response = await async_client.get("/thread/nonexistent_thread/actions")
+        response = await async_client.post("/thread/nonexistent_thread/actions")
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Thread not found"
 
     @pytest.mark.asyncio
     async def test_detect_actions_chatgpt_not_called_when_thread_missing(self, async_client, mock_chatgpt):
-        await async_client.get("/thread/nonexistent_thread/actions")
+        await async_client.post("/thread/nonexistent_thread/actions")
 
         mock_chatgpt.determine_actions.assert_not_called()

@@ -170,19 +170,17 @@ async def summarize_thread(thread_id: str, db: AsyncSession = Depends(get_async_
         select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
     )
     emails = result.scalars().all()
-    
+
     if not emails:
         raise HTTPException(status_code=404, detail="Thread not found")
-    
+
     formatted = Email._format_thread(emails)
-    
     client = ChatGPTClient()
     summary = await asyncio.to_thread(client.summarize_thread, formatted)
-    
     return {"thread_id": thread_id, "summary": summary}
 
 
-@app.get("/thread/{thread_id}/actions")
+@app.post("/thread/{thread_id}/actions")
 async def detect_actions(thread_id: str, db: AsyncSession = Depends(get_async_db_session)):
     result = await db.execute(
         select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
@@ -193,7 +191,6 @@ async def detect_actions(thread_id: str, db: AsyncSession = Depends(get_async_db
         raise HTTPException(status_code=404, detail="Thread not found")
 
     formatted = Email._format_thread(emails)
-
     client = ChatGPTClient()
     actions = await asyncio.to_thread(client.determine_actions, formatted)
     return {"thread_id": thread_id, "actions": actions}
