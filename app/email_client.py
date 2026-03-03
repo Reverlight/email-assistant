@@ -110,3 +110,18 @@ class EmailClient:
                     return result
 
         return ""
+
+    def send_reply(self, thread_id: str, to: str, subject: str, text: str):
+        import base64
+        from email.mime.text import MIMEText
+        
+        message = MIMEText(text)
+        message["to"] = to
+        message["subject"] = f"Re: {subject}"
+        
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        
+        self.service.users().messages().send(
+            userId="me",
+            body={"raw": raw, "threadId": thread_id}
+        ).execute()

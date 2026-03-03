@@ -210,3 +210,15 @@ async def detect_actions(
     client = ChatGPTClient()
     actions = await asyncio.to_thread(client.determine_actions, formatted)
     return {"thread_id": thread_id, "actions": actions}
+
+class ReplyBody(BaseModel):
+    to: str
+    subject: str
+    text: str
+
+@app.post("/thread/{thread_id}/reply")
+async def reply_to_thread(thread_id: str, body: ReplyBody, db: AsyncSession = Depends(get_async_db_session)):
+    # Use Gmail API to send a reply in the thread
+    email_client = EmailClient()
+    await asyncio.to_thread(email_client.send_reply, thread_id, body.to, body.subject, body.text)
+    return {"status": "sent"}
