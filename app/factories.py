@@ -3,6 +3,7 @@ import datetime
 from app.db import AsyncSession
 from app.models import Email
 
+
 class AsyncBaseFactory:
     model = None
     defaults = {}
@@ -22,6 +23,7 @@ class AsyncBaseFactory:
 
 
 # --- factories ---
+
 
 class EmailFactory(AsyncBaseFactory):
     model = Email

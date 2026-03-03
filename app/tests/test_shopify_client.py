@@ -13,9 +13,10 @@ def mock_shopify():
         mock_create.return_value = mock_instance
         yield mock_instance
 
+
 @pytest.mark.asyncio
 async def test_fetch_order_details(async_client: AsyncClient, mock_shopify):
-    order_response =  {
+    order_response = {
         "order": {
             "id": "gid://shopify/Order/6934094708825",
             "name": "#1001",
@@ -49,9 +50,7 @@ async def test_fetch_order_details(async_client: AsyncClient, mock_shopify):
     }
 
     mock_shopify.fetch_order_details.return_value = order_response
-    response = await async_client.get(
-        "/fetch_order_details/1231232"
-    )
+    response = await async_client.get("/fetch_order_details/1231232")
     assert response.status_code == 200
     data = response.json()
 

@@ -28,6 +28,7 @@ app = FastAPI()
 def read_root():
     return {"Hello": "World"}
 
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,12 +40,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class EmailCreate(BaseModel):
     title: str
     text: str
     sender: str
     thread: str
     received_date: datetime.datetime
+
 
 @app.post("/emails", status_code=201)
 async def sync_emails(db: AsyncSession = Depends(get_async_db_session)):
@@ -122,26 +125,31 @@ async def get_emails(db: AsyncSession = Depends(get_async_db_session)):
     thread_list = []
     for thread_id, messages in threads.items():
         last_message = messages[-1]  # already sorted asc, so last = newest
-        thread_list.append({
-            "thread_id": thread_id,
-            "subject": messages[0].title,  # subject of the first message in thread
-            "last_received": last_message.received_date,
-            "messages": [
-                {
-                    "id": m.id,
-                    "google_id": m.google_id,
-                    "sender": m.sender,
-                    "title": m.title,
-                    "text": m.text,
-                    "received_date": m.received_date,
-                }
-                for m in messages
-            ],
-        })
+        thread_list.append(
+            {
+                "thread_id": thread_id,
+                "subject": messages[0].title,  # subject of the first message in thread
+                "last_received": last_message.received_date,
+                "messages": [
+                    {
+                        "id": m.id,
+                        "google_id": m.google_id,
+                        "sender": m.sender,
+                        "title": m.title,
+                        "text": m.text,
+                        "received_date": m.received_date,
+                    }
+                    for m in messages
+                ],
+            }
+        )
 
-    thread_list.sort(key=lambda t: t["last_received"] or datetime.datetime.min, reverse=True)
+    thread_list.sort(
+        key=lambda t: t["last_received"] or datetime.datetime.min, reverse=True
+    )
 
     return {"threads": thread_list}
+
 
 @app.get("/fetch_order_details/{order_id}")
 async def read_root(order_id: str):
@@ -165,9 +173,13 @@ async def read_root(order_id: str):
 
 
 @app.post("/thread/{thread_id}/summarize")
-async def summarize_thread(thread_id: str, db: AsyncSession = Depends(get_async_db_session)):
+async def summarize_thread(
+    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
+):
     result = await db.execute(
-        select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
+        select(Email)
+        .where(Email.thread_id == thread_id)
+        .order_by(Email.received_date.asc())
     )
     emails = result.scalars().all()
 
@@ -181,9 +193,13 @@ async def summarize_thread(thread_id: str, db: AsyncSession = Depends(get_async_
 
 
 @app.post("/thread/{thread_id}/actions")
-async def detect_actions(thread_id: str, db: AsyncSession = Depends(get_async_db_session)):
+async def detect_actions(
+    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
+):
     result = await db.execute(
-        select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
+        select(Email)
+        .where(Email.thread_id == thread_id)
+        .order_by(Email.received_date.asc())
     )
     emails = result.scalars().all()
 

@@ -53,7 +53,6 @@ Email thread:
 """
 
 
-
 class ChatGPTClient:
     def __init__(self):
         if not OPENAI_API_KEY:

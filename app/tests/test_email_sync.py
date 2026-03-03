@@ -44,7 +44,10 @@ def make_thread_response(thread_id: str, message_id: str) -> dict:
                 "payload": {
                     "mimeType": "multipart/alternative",
                     "headers": [
-                        {"name": "Subject", "value": "24 hours left to lock in 35% off Boost"},
+                        {
+                            "name": "Subject",
+                            "value": "24 hours left to lock in 35% off Boost",
+                        },
                         {"name": "From", "value": "vidIQ <hello@send.vidiq.com>"},
                         {"name": "Date", "value": "Sat, 28 Feb 2026 02:46:01 +0000"},
                     ],
