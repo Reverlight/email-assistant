@@ -53,19 +53,6 @@ Email thread:
 """
 
 
-def _format_thread(emails: list[Email]) -> str:
-    """Format a list of Email model instances into a readable thread string."""
-    parts = []
-    for i, email in enumerate(emails, start=1):
-        parts.append(
-            f"--- Email {i} ---\n"
-            f"From: {email.sender}\n"
-            f"Subject: {email.title}\n"
-            f"Date: {email.received_date}\n\n"
-            f"{email.text or ''}"
-        )
-    return "\n\n".join(parts)
-
 
 class ChatGPTClient:
     def __init__(self):

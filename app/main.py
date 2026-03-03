@@ -166,60 +166,21 @@ async def read_root(order_id: str):
 
 @app.post("/thread/{thread_id}/summarize")
 async def summarize_thread(thread_id: str, db: AsyncSession = Depends(get_async_db_session)):
-    # result = await db.execute(
-    #     select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
-    # )
-    # emails = result.scalars().all()
-
-    # if not emails:
-    #     raise HTTPException(status_code=404, detail="Thread not found")
-    text = """
-    --- Email 1 ---
-From: Sarah Mitchell <sarah.mitchell@example.com>
-Subject: Refund request for order #4821
-Date: 2026-02-28 10:14:00+00:00
-
-Hi,
-
-I placed an order (#4821) on February 24th for a pair of running shoes, size 42.
-The shoes arrived yesterday but the quality is nothing like what was shown on the website —
-the sole is already coming apart and the stitching looks very rough.
-
-I've been a customer for 2 years and this is the first time I've been disappointed.
-I'd like to request a full refund and will send the item back.
-
-My account email is sarah.mitchell@example.com.
-
-Thanks,
-Sarah
-
---- Email 2 ---
-From: Support <support@ourstore.com>
-Subject: Re: Refund request for order #4821
-Date: 2026-02-28 11:30:00+00:00
-
-Hi Sarah,
-
-Thank you for reaching out. We're sorry to hear about the quality issue.
-We've logged your refund request for order #4821 and our team will review it within 24 hours.
-
-Best regards,
-Support Team
-
---- Email 3 ---
-From: Sarah Mitchell <sarah.mitchell@example.com>
-Subject: Re: Refund request for order #4821
-Date: 2026-03-01 09:05:00+00:00
-
-Hi, it's been over 24 hours and I haven't heard back.
-Can you please confirm when the refund will be processed?
-
-Thanks,
-Sarah
-    """
+    result = await db.execute(
+        select(Email).where(Email.thread_id == thread_id).order_by(Email.received_date.asc())
+    )
+    emails = result.scalars().all()
+    
+    if not emails:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    
+    formatted = Email._format_thread(emails)
+    
     client = ChatGPTClient()
-    summary = await asyncio.to_thread(client.summarize_thread, text)
+    summary = await asyncio.to_thread(client.summarize_thread, formatted)
+    
     return {"thread_id": thread_id, "summary": summary}
+
 
 @app.get("/thread/{thread_id}/actions")
 async def detect_actions(thread_id: str, db: AsyncSession = Depends(get_async_db_session)):

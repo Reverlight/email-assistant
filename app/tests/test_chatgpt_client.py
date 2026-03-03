@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -58,6 +59,7 @@ Thanks,
 Sarah
 """
 
+MOCK_SUMMARY = "Customer Sarah requested a refund for order #4821 due to quality issues."
 
 """
 {
@@ -107,3 +109,84 @@ class TestEmails:
         result = await async_db.execute(select(Email))
         emails = result.scalars().all()
         assert len(emails) == 2
+        
+class TestSummarizeThread:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, async_db):
+        self.thread_id = "thread_001"
+        self.other_thread_id = "thread_002"
+
+        self.email1 = await EmailFactory.create(
+            async_db,
+            google_id="msg_001",
+            thread_id=self.thread_id,
+            title="Refund request for order #4821",
+            text="I would like a refund for order #4821.",
+            sender="sarah@example.com",
+            received_date=datetime.datetime(2026, 2, 28, 10, 0, 0),
+        )
+        self.email2 = await EmailFactory.create(
+            async_db,
+            google_id="msg_002",
+            thread_id=self.thread_id,
+            title="Re: Refund request for order #4821",
+            text="Thank you, we will review within 24 hours.",
+            sender="support@store.com",
+            received_date=datetime.datetime(2026, 2, 28, 11, 0, 0),
+        )
+        self.other_email = await EmailFactory.create(
+            async_db,
+            google_id="msg_003",
+            thread_id=self.other_thread_id,
+            title="Unrelated email",
+            text="This should not appear in the summary.",
+            sender="other@example.com",
+            received_date=datetime.datetime(2026, 2, 28, 12, 0, 0),
+        )
+
+    @pytest.fixture
+    def mock_chatgpt(self):
+        with patch("app.main.ChatGPTClient") as MockClient:
+            mock_instance = MockClient.return_value
+            mock_instance.summarize_thread.return_value = MOCK_SUMMARY
+            yield mock_instance  # 👈 yield the instance, not the class
+
+    @pytest.mark.asyncio
+    async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
+        response = await async_client.post(f"/thread/{self.thread_id}/summarize")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "thread_id": self.thread_id,
+            "summary": MOCK_SUMMARY,
+        }
+
+    @pytest.mark.asyncio
+    async def test_summarize_calls_chatgpt_with_formatted_thread(self, async_client, mock_chatgpt):
+        await async_client.post(f"/thread/{self.thread_id}/summarize")
+
+        mock_chatgpt.summarize_thread.assert_called_once()
+        call_arg = mock_chatgpt.summarize_thread.call_args[0][0]
+        assert "sarah@example.com" in call_arg
+        assert "support@store.com" in call_arg
+        assert "other@example.com" not in call_arg
+
+    @pytest.mark.asyncio
+    async def test_summarize_emails_ordered_by_date(self, async_client, mock_chatgpt):
+        await async_client.post(f"/thread/{self.thread_id}/summarize")
+
+        call_arg = mock_chatgpt.summarize_thread.call_args[0][0]
+        assert call_arg.index("sarah@example.com") < call_arg.index("support@store.com")
+
+    @pytest.mark.asyncio
+    async def test_summarize_thread_not_found(self, async_client, mock_chatgpt):
+        response = await async_client.post("/thread/nonexistent_thread/summarize")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Thread not found"
+
+    @pytest.mark.asyncio
+    async def test_summarize_chatgpt_not_called_when_thread_missing(self, async_client, mock_chatgpt):
+        await async_client.post("/thread/nonexistent_thread/summarize")
+
+        mock_chatgpt.summarize_thread.assert_not_called()
