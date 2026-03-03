@@ -14,8 +14,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.chatgpt_client import ChatGPTClient
 from app.db import get_async_db_session
-from app.email_sync import EmailClient
+from app.email_client import EmailClient
 from app.models import Email
 from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
 from app.shopify_client import ShopifyClient
@@ -28,12 +29,25 @@ def read_root():
     return {"Hello": "World"}
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 class EmailCreate(BaseModel):
     title: str
     text: str
     sender: str
     thread: str
     received_date: datetime.datetime
+
 
 @app.post("/emails", status_code=201)
 async def sync_emails(db: AsyncSession = Depends(get_async_db_session)):
@@ -111,26 +125,31 @@ async def get_emails(db: AsyncSession = Depends(get_async_db_session)):
     thread_list = []
     for thread_id, messages in threads.items():
         last_message = messages[-1]  # already sorted asc, so last = newest
-        thread_list.append({
-            "thread_id": thread_id,
-            "subject": messages[0].title,  # subject of the first message in thread
-            "last_received": last_message.received_date,
-            "messages": [
-                {
-                    "id": m.id,
-                    "google_id": m.google_id,
-                    "sender": m.sender,
-                    "title": m.title,
-                    "text": m.text,
-                    "received_date": m.received_date,
-                }
-                for m in messages
-            ],
-        })
+        thread_list.append(
+            {
+                "thread_id": thread_id,
+                "subject": messages[0].title,  # subject of the first message in thread
+                "last_received": last_message.received_date,
+                "messages": [
+                    {
+                        "id": m.id,
+                        "google_id": m.google_id,
+                        "sender": m.sender,
+                        "title": m.title,
+                        "text": m.text,
+                        "received_date": m.received_date,
+                    }
+                    for m in messages
+                ],
+            }
+        )
 
-    thread_list.sort(key=lambda t: t["last_received"] or datetime.datetime.min, reverse=True)
+    thread_list.sort(
+        key=lambda t: t["last_received"] or datetime.datetime.min, reverse=True
+    )
 
     return {"threads": thread_list}
+
 
 @app.get("/fetch_order_details/{order_id}")
 async def read_root(order_id: str):
@@ -151,3 +170,43 @@ async def read_root(order_id: str):
     async with await ShopifyClient.create() as shopify:
         refund_data = await shopify.refund_order(order_id=order_id)
     return {"refund_data": refund_data}
+
+
+@app.post("/thread/{thread_id}/summarize")
+async def summarize_thread(
+    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
+):
+    result = await db.execute(
+        select(Email)
+        .where(Email.thread_id == thread_id)
+        .order_by(Email.received_date.asc())
+    )
+    emails = result.scalars().all()
+
+    if not emails:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    formatted = Email._format_thread(emails)
+    client = ChatGPTClient()
+    summary = await asyncio.to_thread(client.summarize_thread, formatted)
+    return {"thread_id": thread_id, "summary": summary}
+
+
+@app.post("/thread/{thread_id}/actions")
+async def detect_actions(
+    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
+):
+    result = await db.execute(
+        select(Email)
+        .where(Email.thread_id == thread_id)
+        .order_by(Email.received_date.asc())
+    )
+    emails = result.scalars().all()
+
+    if not emails:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    formatted = Email._format_thread(emails)
+    client = ChatGPTClient()
+    actions = await asyncio.to_thread(client.determine_actions, formatted)
+    return {"thread_id": thread_id, "actions": actions}

@@ -4,7 +4,7 @@ services:
   web_test:
     build: .
     container_name: fastapi_test
-    command: uv run pytest --cov=app --cov-report=html
+    command: uv run pytest --cov --cov-report=term-missing --cov-report=html
     volumes:
       - .:/app
     environment:

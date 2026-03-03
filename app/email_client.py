@@ -101,7 +101,9 @@ class EmailClient:
             if part.get("mimeType") == "text/plain":
                 data = part.get("body", {}).get("data")
                 if data:
-                    return base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
+                    return base64.urlsafe_b64decode(data).decode(
+                        "utf-8", errors="replace"
+                    )
             if part.get("mimeType", "").startswith("multipart"):
                 result = self._extract_body(part)
                 if result:

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Self
 
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -39,3 +39,17 @@ class Email(Base):
     text: Mapped[str] = mapped_column(Text, nullable=True)
     sender: Mapped[str] = mapped_column(String(255), nullable=False)
     received_date: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
+    @classmethod
+    def _format_thread(cls, emails: list[Self]) -> str:
+        """Format a list of Email model instances into a readable thread string."""
+        parts = []
+        for i, email in enumerate(emails, start=1):
+            parts.append(
+                f"--- Email {i} ---\n"
+                f"From: {email.sender}\n"
+                f"Subject: {email.title}\n"
+                f"Date: {email.received_date}\n\n"
+                f"{email.text or ''}"
+            )
+        return "\n\n".join(parts)
