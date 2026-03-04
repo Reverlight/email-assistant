@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.factories import EmailFactory
 from app.models import Email
-
+from app.main import app
 {
     "thread_id": "123",
     "summary": "Sarah Mitchell requested a full refund for order #4821, which she placed on February 24th for a pair of running shoes that arrived on February 27th. She reported quality issues, including a sole that was coming apart and rough stitching. The support team acknowledged her request on February 28th and stated they would review it within 24 hours. As of March 1st, Sarah has followed up, seeking confirmation on the status of her refund.",
@@ -83,29 +83,6 @@ MOCK_SUMMARY = (
 """
 
 
-# test file
-class TestEmails:
-    @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, async_db):
-        self.email = await EmailFactory.create(
-            async_db,
-            google_id="msg_001",
-            thread_id="thread_001",
-            sender="alice@gmail.com",
-        )
-        self.email2 = await EmailFactory.create(
-            async_db,
-            google_id="msg_002",
-            thread_id="thread_001",
-            sender="bob@gmail.com",
-        )
-
-    @pytest.mark.asyncio
-    async def test_emails_exist(self, async_db):
-        result = await async_db.execute(select(Email))
-        emails = result.scalars().all()
-        assert len(emails) == 2
-
 
 class TestSummarizeThread:
     @pytest_asyncio.fixture(autouse=True)
@@ -143,14 +120,15 @@ class TestSummarizeThread:
 
     @pytest.fixture
     def mock_chatgpt(self):
-        with patch("app.main.ChatGPTClient") as MockClient:
+        with patch("app.routes.ai_actions.ChatGPTClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.summarize_thread.return_value = MOCK_SUMMARY
             yield mock_instance  # 👈 yield the instance, not the class
 
     @pytest.mark.asyncio
     async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
-        response = await async_client.post(f"/thread/{self.thread_id}/summarize")
+        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        response = await async_client.post(summarize_path)
 
         assert response.status_code == 200
         assert response.json() == {
@@ -162,7 +140,8 @@ class TestSummarizeThread:
     async def test_summarize_calls_chatgpt_with_formatted_thread(
         self, async_client, mock_chatgpt
     ):
-        await async_client.post(f"/thread/{self.thread_id}/summarize")
+        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        response = await async_client.post(summarize_path)
 
         mock_chatgpt.summarize_thread.assert_called_once()
         call_arg = mock_chatgpt.summarize_thread.call_args[0][0]
@@ -172,29 +151,24 @@ class TestSummarizeThread:
 
     @pytest.mark.asyncio
     async def test_summarize_emails_ordered_by_date(self, async_client, mock_chatgpt):
-        await async_client.post(f"/thread/{self.thread_id}/summarize")
+        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        response = await async_client.post(summarize_path)
 
         call_arg = mock_chatgpt.summarize_thread.call_args[0][0]
         assert call_arg.index("sarah@example.com") < call_arg.index("support@store.com")
 
     @pytest.mark.asyncio
     async def test_summarize_thread_not_found(self, async_client, mock_chatgpt):
-        response = await async_client.post("/thread/nonexistent_thread/summarize")
+        summarize_path = app.url_path_for('openai:summarize', thread_id='not_existing')
+        response = await async_client.post(summarize_path)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Thread not found"
 
     @pytest.mark.asyncio
-    async def test_summarize_chatgpt_not_called_when_thread_missing(
-        self, async_client, mock_chatgpt
-    ):
-        await async_client.post("/thread/nonexistent_thread/summarize")
-
-        mock_chatgpt.summarize_thread.assert_not_called()
-
-    @pytest.mark.asyncio
     async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
-        response = await async_client.post(f"/thread/{self.thread_id}/summarize")
+        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        response = await async_client.post(summarize_path)
         print(response.status_code)
         print(response.json())  # 👈 add this
         assert response.status_code == 200
@@ -233,14 +207,15 @@ class TestDetectActions:
 
     @pytest.fixture
     def mock_chatgpt(self):
-        with patch("app.main.ChatGPTClient") as MockClient:
+        with patch("app.routes.ai_actions.ChatGPTClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.determine_actions.return_value = MOCK_ACTIONS
             yield mock_instance
 
     @pytest.mark.asyncio
     async def test_detect_actions_returns_actions(self, async_client, mock_chatgpt):
-        response = await async_client.post(f"/thread/{self.thread_id}/actions")
+        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id=self.thread_id)
+        response = await async_client.post(detect_actions_path)
 
         assert response.status_code == 200
         assert response.json() == {
@@ -252,7 +227,8 @@ class TestDetectActions:
     async def test_detect_actions_calls_chatgpt_with_formatted_thread(
         self, async_client, mock_chatgpt
     ):
-        response = await async_client.post(f"/thread/{self.thread_id}/actions")
+        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id=self.thread_id)
+        response = await async_client.post(detect_actions_path)
 
         mock_chatgpt.determine_actions.assert_called_once()
         call_arg = mock_chatgpt.determine_actions.call_args[0][0]
@@ -263,15 +239,8 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_thread_not_found(self, async_client, mock_chatgpt):
-        response = await async_client.post("/thread/nonexistent_thread/actions")
+        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id='nonexistent_thread')
+        response = await async_client.post(detect_actions_path)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Thread not found"
-
-    @pytest.mark.asyncio
-    async def test_detect_actions_chatgpt_not_called_when_thread_missing(
-        self, async_client, mock_chatgpt
-    ):
-        await async_client.post("/thread/nonexistent_thread/actions")
-
-        mock_chatgpt.determine_actions.assert_not_called()

@@ -18,7 +18,7 @@ from app.chatgpt_client import ChatGPTClient
 from app.db import get_async_db_session
 from app.email_client import EmailClient
 from app.models import Email
-from app.routes import emails
+from app.routes import ai_actions, emails
 from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
 from app.shopify_client import ShopifyClient
 
@@ -37,6 +37,7 @@ app.add_middleware(
 )
 
 app.include_router(emails.router)
+app.include_router(ai_actions.router)
 
 @app.get("/fetch_order_details/{order_id}")
 async def read_root(order_id: str):
@@ -59,41 +60,3 @@ async def read_root(order_id: str):
     return {"refund_data": refund_data}
 
 
-@app.post("/thread/{thread_id}/summarize")
-async def summarize_thread(
-    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
-):
-    result = await db.execute(
-        select(Email)
-        .where(Email.thread_id == thread_id)
-        .order_by(Email.received_date.asc())
-    )
-    emails = result.scalars().all()
-
-    if not emails:
-        raise HTTPException(status_code=404, detail="Thread not found")
-
-    formatted = Email._format_thread(emails)
-    client = ChatGPTClient()
-    summary = await asyncio.to_thread(client.summarize_thread, formatted)
-    return {"thread_id": thread_id, "summary": summary}
-
-
-@app.post("/thread/{thread_id}/actions")
-async def detect_actions(
-    thread_id: str, db: AsyncSession = Depends(get_async_db_session)
-):
-    result = await db.execute(
-        select(Email)
-        .where(Email.thread_id == thread_id)
-        .order_by(Email.received_date.asc())
-    )
-    emails = result.scalars().all()
-
-    if not emails:
-        raise HTTPException(status_code=404, detail="Thread not found")
-
-    formatted = Email._format_thread(emails)
-    client = ChatGPTClient()
-    actions = await asyncio.to_thread(client.determine_actions, formatted)
-    return {"thread_id": thread_id, "actions": actions}
