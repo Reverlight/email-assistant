@@ -8,6 +8,18 @@ from sqlalchemy import select
 from app.factories import EmailFactory
 from app.models import Email
 from app.main import app
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from app.openai_client import (
+    ACTION_FETCH_CLIENT,
+    ACTION_FETCH_ORDER,
+    ACTION_REFUND_ORDER,
+    OpenAIClient,
+)
+
 {
     "thread_id": "123",
     "summary": "Sarah Mitchell requested a full refund for order #4821, which she placed on February 24th for a pair of running shoes that arrived on February 27th. She reported quality issues, including a sole that was coming apart and rough stitching. The support team acknowledged her request on February 28th and stated they would review it within 24 hours. As of March 1st, Sarah has followed up, seeking confirmation on the status of her refund.",
@@ -120,7 +132,7 @@ class TestSummarizeThread:
 
     @pytest.fixture
     def mock_chatgpt(self):
-        with patch("app.routes.ai_actions.ChatGPTClient") as MockClient:
+        with patch("app.routes.ai_actions.OpenAIClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.summarize_thread.return_value = MOCK_SUMMARY
             yield mock_instance  # 👈 yield the instance, not the class
@@ -207,7 +219,7 @@ class TestDetectActions:
 
     @pytest.fixture
     def mock_chatgpt(self):
-        with patch("app.routes.ai_actions.ChatGPTClient") as MockClient:
+        with patch("app.routes.ai_actions.OpenAIClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.determine_actions.return_value = MOCK_ACTIONS
             yield mock_instance

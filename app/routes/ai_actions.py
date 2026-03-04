@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chatgpt_client import ChatGPTClient
+from app.openai_client import OpenAIClient
 from app.db import get_async_db_session
 from app.email_client import EmailClient
 from app.models import Email
@@ -41,7 +41,7 @@ async def summarize_thread(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     formatted = Email._format_thread(emails)
-    client = ChatGPTClient()
+    client = OpenAIClient()
     summary = await asyncio.to_thread(client.summarize_thread, formatted)
     return {"thread_id": thread_id, "summary": summary}
 
@@ -61,6 +61,6 @@ async def detect_actions(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     formatted = Email._format_thread(emails)
-    client = ChatGPTClient()
+    client = OpenAIClient()
     actions = await asyncio.to_thread(client.determine_actions, formatted)
     return {"thread_id": thread_id, "actions": actions}
