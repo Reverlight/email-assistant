@@ -123,3 +123,14 @@ async def get_emails(db: AsyncSession = Depends(get_async_db_session)):
     )
 
     return {"threads": thread_list}
+
+class ReplyBody(BaseModel):
+    to: str
+    subject: str
+    text: str
+
+@router.post("/thread/{thread_id}/reply", name="emails:reply")
+async def reply_to_thread(thread_id: str, body: ReplyBody):
+    email_client = EmailClient()
+    await asyncio.to_thread(email_client.send_reply, thread_id, body.to, body.subject, body.text)
+    return {"status": "sent"}
