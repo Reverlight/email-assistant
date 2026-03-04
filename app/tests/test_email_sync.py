@@ -7,7 +7,9 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.factories import EmailFactory
 from app.models import Email
+from app.main import app
 
 html_body = "<html><body><p>Hello, this is a test email.</p></body></html>"
 encoded_body = base64.urlsafe_b64encode(html_body.encode()).decode()
@@ -66,7 +68,7 @@ def make_thread_response(thread_id: str, message_id: str) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_fetch_emails(async_client: AsyncClient, async_db: AsyncSession):
+async def test_sync_emails(async_client: AsyncClient, async_db: AsyncSession):
     thread_ids = [t["id"] for t in THREADS_LIST_RESPONSE["threads"]]
 
     with (
@@ -85,8 +87,8 @@ async def test_fetch_emails(async_client: AsyncClient, async_db: AsyncSession):
         threads.get.return_value.execute.side_effect = [
             make_thread_response(tid, tid) for tid in thread_ids
         ]
-
-        response = await async_client.post("/emails")
+        
+        response = await async_client.post(app.url_path_for('emails:sync_emails'))
 
     assert response.status_code == 201, response.json()
     data = response.json()
@@ -96,3 +98,47 @@ async def test_fetch_emails(async_client: AsyncClient, async_db: AsyncSession):
     emails = result.scalars().all()
     assert len(emails) == 10
     assert emails[0].text == html_body
+
+@pytest.mark.asyncio
+async def test_get_emails(async_client: AsyncClient, async_db: AsyncSession):
+    # Seed emails across 2 threads
+    for i in range(5):
+        await EmailFactory.create(async_db,
+            google_id=f"google_id_{i}",
+            thread_id="thread_abc",
+            title=f"Subject {i}",
+            received_date=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+        )
+    for i in range(5, 10):
+        await EmailFactory.create(async_db,
+            google_id=f"google_id_{i}",
+            thread_id="thread_xyz",
+            title=f"Subject {i}",
+            received_date=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+        )
+
+    response = await async_client.get(app.url_path_for("emails:get_emails"))
+    assert response.status_code == 200
+
+    data = response.json()
+    threads = data["threads"]
+
+    assert len(threads) == 2
+
+    # thread_xyz has more recent emails, so it should come first
+    assert threads[0]["thread_id"] == "thread_xyz"
+    assert threads[1]["thread_id"] == "thread_abc"
+
+    assert len(threads[0]["messages"]) == 5
+    assert len(threads[1]["messages"]) == 5
+
+    # Messages sorted oldest → newest within thread
+    dates = [m["received_date"] for m in threads[1]["messages"]]
+    assert dates == sorted(dates)
+
+    # Subject comes from first message in thread
+    assert threads[1]["subject"] == "Subject 0"
+
+    # Check message shape
+    msg = threads[0]["messages"][0]
+    assert all(k in msg for k in ("id", "google_id", "sender", "title", "text", "received_date"))
