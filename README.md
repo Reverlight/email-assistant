@@ -43,6 +43,21 @@ Maildesk is a full-stack customer support tool that syncs your Gmail inbox, grou
 
 ---
 
+
+## 📸 Screenshots
+
+### Inbox & Thread View
+![Inbox and thread view](https://raw.githubusercontent.com/Reverlight/email-assistant/main/screenshots/screenshot1.png)
+
+### AI Summary & Action Detection
+![AI summary and action detection](https://raw.githubusercontent.com/Reverlight/email-assistant/main/screenshots/screenshot2.png)
+
+### Shopify Action Popup
+![Shopify action confirmation popup](https://raw.githubusercontent.com/Reverlight/email-assistant/main/screenshots/screenshot3.png)
+
+### Reply in Thread
+![Replying in a thread](https://raw.githubusercontent.com/Reverlight/email-assistant/main/screenshots/screenshot4.png)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
