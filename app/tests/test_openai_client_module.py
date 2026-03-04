@@ -10,8 +10,8 @@ from app.openai_client import (
     OpenAIClient,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def make_completion(content: str) -> MagicMock:
     """Build a mock OpenAI ChatCompletion response."""
@@ -41,6 +41,7 @@ def client():
 
 # ── Init ───────────────────────────────────────────────────────────────────────
 
+
 def test_init_raises_without_api_key():
     with patch("app.openai_client.OPENAI_API_KEY", None):
         with pytest.raises(Exception, match="OPENAI_API_KEY is not set"):
@@ -56,14 +57,20 @@ def test_init_sets_correct_model():
 
 # ── determine_actions ──────────────────────────────────────────────────────────
 
+
 def test_determine_actions_returns_all_three(client):
-    payload = json.dumps({
-        "actions": [
-            {"type": "fetch_order_detail", "order_id": "4821"},
-            {"type": "fetch_client_detail", "customer_email": "sarah.mitchell@example.com"},
-            {"type": "refund_order", "order_id": "4821"},
-        ]
-    })
+    payload = json.dumps(
+        {
+            "actions": [
+                {"type": "fetch_order_detail", "order_id": "4821"},
+                {
+                    "type": "fetch_client_detail",
+                    "customer_email": "sarah.mitchell@example.com",
+                },
+                {"type": "refund_order", "order_id": "4821"},
+            ]
+        }
+    )
     client.client.chat.completions.create.return_value = make_completion(payload)
 
     result = client.determine_actions(SAMPLE_THREAD)
@@ -76,7 +83,9 @@ def test_determine_actions_returns_all_three(client):
 
 
 def test_determine_actions_single_fetch_order(client):
-    payload = json.dumps({"actions": [{"type": "fetch_order_detail", "order_id": "1099"}]})
+    payload = json.dumps(
+        {"actions": [{"type": "fetch_order_detail", "order_id": "1099"}]}
+    )
     client.client.chat.completions.create.return_value = make_completion(payload)
 
     result = client.determine_actions(SAMPLE_THREAD)
@@ -87,7 +96,13 @@ def test_determine_actions_single_fetch_order(client):
 
 
 def test_determine_actions_single_fetch_client(client):
-    payload = json.dumps({"actions": [{"type": "fetch_client_detail", "customer_email": "john@example.com"}]})
+    payload = json.dumps(
+        {
+            "actions": [
+                {"type": "fetch_client_detail", "customer_email": "john@example.com"}
+            ]
+        }
+    )
     client.client.chat.completions.create.return_value = make_completion(payload)
 
     result = client.determine_actions(SAMPLE_THREAD)
@@ -117,13 +132,15 @@ def test_determine_actions_empty_list(client):
 
 
 def test_determine_actions_filters_unknown_types(client):
-    payload = json.dumps({
-        "actions": [
-            {"type": "fetch_order_detail", "order_id": "1"},
-            {"type": "delete_everything"},
-            {"type": "unknown_action"},
-        ]
-    })
+    payload = json.dumps(
+        {
+            "actions": [
+                {"type": "fetch_order_detail", "order_id": "1"},
+                {"type": "delete_everything"},
+                {"type": "unknown_action"},
+            ]
+        }
+    )
     client.client.chat.completions.create.return_value = make_completion(payload)
 
     result = client.determine_actions(SAMPLE_THREAD)
@@ -142,7 +159,9 @@ def test_determine_actions_missing_actions_key(client):
 
 
 def test_determine_actions_null_params_preserved(client):
-    payload = json.dumps({"actions": [{"type": "fetch_order_detail", "order_id": None}]})
+    payload = json.dumps(
+        {"actions": [{"type": "fetch_order_detail", "order_id": None}]}
+    )
     client.client.chat.completions.create.return_value = make_completion(payload)
 
     result = client.determine_actions(SAMPLE_THREAD)
@@ -174,6 +193,7 @@ def test_determine_actions_prompt_contains_thread(client):
 
 
 # ── summarize_thread ───────────────────────────────────────────────────────────
+
 
 def test_summarize_returns_stripped_string(client):
     client.client.chat.completions.create.return_value = make_completion(

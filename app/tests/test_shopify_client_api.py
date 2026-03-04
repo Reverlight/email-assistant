@@ -4,9 +4,12 @@ import pytest
 from httpx import AsyncClient
 from app.main import app
 
+
 @pytest.fixture
 def mock_shopify():
-    with patch("app.routes.shopify.ShopifyClient.create", new_callable=AsyncMock) as mock_create:
+    with patch(
+        "app.routes.shopify.ShopifyClient.create", new_callable=AsyncMock
+    ) as mock_create:
         mock_instance = AsyncMock()
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
         mock_instance.__aexit__ = AsyncMock(return_value=None)
@@ -50,8 +53,10 @@ async def test_fetch_order_details(async_client: AsyncClient, mock_shopify):
     }
 
     mock_shopify.fetch_order_details.return_value = order_response
-    
-    response = await async_client.get(app.url_path_for('shopify:fetch_order_details', order_id='1231232'))
+
+    response = await async_client.get(
+        app.url_path_for("shopify:fetch_order_details", order_id="1231232")
+    )
     assert response.status_code == 200
     data = response.json()
 
@@ -95,10 +100,10 @@ async def test_fetch_customer(async_client: AsyncClient, mock_shopify):
             "currencyCode": "USD",
         },
     }
-    customer_details_path = app.url_path_for('shopify:fetch_customer_details', email='ayumu.hirano@example.com')
-    response = await async_client.get(
-        customer_details_path
+    customer_details_path = app.url_path_for(
+        "shopify:fetch_customer_details", email="ayumu.hirano@example.com"
     )
+    response = await async_client.get(customer_details_path)
     assert response.status_code == 200
     customer = response.json()["customer"]
     assert customer["id"] == "gid://shopify/Customer/9182743625817"
@@ -121,7 +126,7 @@ async def test_refund_order(async_client: AsyncClient, mock_shopify):
     }
 
     mock_shopify.refund_order.return_value = data
-    refund_order_path = app.url_path_for('shopify:refund_order', order_id='123123213')
+    refund_order_path = app.url_path_for("shopify:refund_order", order_id="123123213")
     response = await async_client.post(refund_order_path)
     assert response.status_code == 200
     response_data = response.json()["refund_data"]

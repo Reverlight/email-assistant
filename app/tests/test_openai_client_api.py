@@ -95,7 +95,6 @@ MOCK_SUMMARY = (
 """
 
 
-
 class TestSummarizeThread:
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, async_db, async_client):
@@ -139,7 +138,7 @@ class TestSummarizeThread:
 
     @pytest.mark.asyncio
     async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
-        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        summarize_path = app.url_path_for("openai:summarize", thread_id=self.thread_id)
         response = await async_client.post(summarize_path)
 
         assert response.status_code == 200
@@ -152,7 +151,7 @@ class TestSummarizeThread:
     async def test_summarize_calls_chatgpt_with_formatted_thread(
         self, async_client, mock_chatgpt
     ):
-        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        summarize_path = app.url_path_for("openai:summarize", thread_id=self.thread_id)
         response = await async_client.post(summarize_path)
 
         mock_chatgpt.summarize_thread.assert_called_once()
@@ -163,7 +162,7 @@ class TestSummarizeThread:
 
     @pytest.mark.asyncio
     async def test_summarize_emails_ordered_by_date(self, async_client, mock_chatgpt):
-        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        summarize_path = app.url_path_for("openai:summarize", thread_id=self.thread_id)
         response = await async_client.post(summarize_path)
 
         call_arg = mock_chatgpt.summarize_thread.call_args[0][0]
@@ -171,7 +170,7 @@ class TestSummarizeThread:
 
     @pytest.mark.asyncio
     async def test_summarize_thread_not_found(self, async_client, mock_chatgpt):
-        summarize_path = app.url_path_for('openai:summarize', thread_id='not_existing')
+        summarize_path = app.url_path_for("openai:summarize", thread_id="not_existing")
         response = await async_client.post(summarize_path)
 
         assert response.status_code == 404
@@ -179,7 +178,7 @@ class TestSummarizeThread:
 
     @pytest.mark.asyncio
     async def test_summarize_returns_summary(self, async_client, mock_chatgpt):
-        summarize_path = app.url_path_for('openai:summarize', thread_id=self.thread_id)
+        summarize_path = app.url_path_for("openai:summarize", thread_id=self.thread_id)
         response = await async_client.post(summarize_path)
         print(response.status_code)
         print(response.json())  # 👈 add this
@@ -226,7 +225,9 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_returns_actions(self, async_client, mock_chatgpt):
-        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id=self.thread_id)
+        detect_actions_path = app.url_path_for(
+            "openai:detect_actions", thread_id=self.thread_id
+        )
         response = await async_client.post(detect_actions_path)
 
         assert response.status_code == 200
@@ -239,7 +240,9 @@ class TestDetectActions:
     async def test_detect_actions_calls_chatgpt_with_formatted_thread(
         self, async_client, mock_chatgpt
     ):
-        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id=self.thread_id)
+        detect_actions_path = app.url_path_for(
+            "openai:detect_actions", thread_id=self.thread_id
+        )
         response = await async_client.post(detect_actions_path)
 
         mock_chatgpt.determine_actions.assert_called_once()
@@ -251,7 +254,9 @@ class TestDetectActions:
 
     @pytest.mark.asyncio
     async def test_detect_actions_thread_not_found(self, async_client, mock_chatgpt):
-        detect_actions_path = app.url_path_for('openai:detect_actions', thread_id='nonexistent_thread')
+        detect_actions_path = app.url_path_for(
+            "openai:detect_actions", thread_id="nonexistent_thread"
+        )
         response = await async_client.post(detect_actions_path)
 
         assert response.status_code == 404

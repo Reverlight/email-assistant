@@ -1,32 +1,20 @@
 from fastapi import APIRouter
 import asyncio
-from collections import defaultdict
-import datetime
-import os
 
-from fastapi import Depends, FastAPI, HTTPException
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from httplib2 import Credentials
-from pydantic import BaseModel
+from fastapi import Depends, HTTPException
+
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import Email
 from app.openai_client import OpenAIClient
 from app.db import get_async_db_session
-from app.email_client import EmailClient
-from app.models import Email
-from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
-from app.shopify_client import ShopifyClient
+
+router = APIRouter(prefix="/openai", tags=["openai"])
 
 
-router = APIRouter(prefix='/openai', tags=["openai"])
-
-
-@router.post("/thread/{thread_id}/summarize", name='openai:summarize')
+@router.post("/thread/{thread_id}/summarize", name="openai:summarize")
 async def summarize_thread(
     thread_id: str, db: AsyncSession = Depends(get_async_db_session)
 ):
@@ -46,7 +34,7 @@ async def summarize_thread(
     return {"thread_id": thread_id, "summary": summary}
 
 
-@router.post("/thread/{thread_id}/actions", name='openai:detect_actions')
+@router.post("/thread/{thread_id}/actions", name="openai:detect_actions")
 async def detect_actions(
     thread_id: str, db: AsyncSession = Depends(get_async_db_session)
 ):

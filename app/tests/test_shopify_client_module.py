@@ -5,7 +5,6 @@ import pytest
 
 from app.shopify_client import ShopifyClient
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 SHOP_ID = "test-shop"
@@ -41,7 +40,9 @@ ORDER_DATA = {
                         "id": "gid://shopify/LineItem/111",
                         "title": "Running Shoes",
                         "quantity": 1,
-                        "originalUnitPriceSet": {"shopMoney": {"amount": "120.00", "currencyCode": "USD"}},
+                        "originalUnitPriceSet": {
+                            "shopMoney": {"amount": "120.00", "currencyCode": "USD"}
+                        },
                     }
                 }
             ]
@@ -77,7 +78,9 @@ REFUND_DATA = {
     "refundCreate": {
         "refund": {
             "id": "gid://shopify/Refund/777",
-            "totalRefundedSet": {"shopMoney": {"amount": "120.00", "currencyCode": "USD"}},
+            "totalRefundedSet": {
+                "shopMoney": {"amount": "120.00", "currencyCode": "USD"}
+            },
         },
         "userErrors": [],
     }
@@ -85,6 +88,7 @@ REFUND_DATA = {
 
 
 # ── create() ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_fetches_token_and_returns_client():
@@ -129,6 +133,7 @@ async def test_create_raises_on_bad_token_response():
 
 # ── _query ────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_query_returns_data():
     client = make_client()
@@ -144,9 +149,9 @@ async def test_query_returns_data():
 async def test_query_raises_on_graphql_errors():
     client = make_client()
     client.client = AsyncMock()
-    client.client.post.return_value = make_response({
-        "errors": [{"message": "Order not found"}]
-    })
+    client.client.post.return_value = make_response(
+        {"errors": [{"message": "Order not found"}]}
+    )
 
     with pytest.raises(Exception, match="Order not found"):
         await client._query("query { order }", {})
@@ -167,6 +172,7 @@ async def test_query_raises_on_http_error():
 
 
 # ── fetch_order_details ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_fetch_order_details_returns_order():
@@ -196,13 +202,16 @@ async def test_fetch_order_details_sends_correct_gid():
 async def test_fetch_order_details_raises_on_error():
     client = make_client()
     client.client = AsyncMock()
-    client.client.post.return_value = make_response({"errors": [{"message": "Not found"}]})
+    client.client.post.return_value = make_response(
+        {"errors": [{"message": "Not found"}]}
+    )
 
     with pytest.raises(Exception):
         await client.fetch_order_details("9999")
 
 
 # ── fetch_customer ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_fetch_customer_returns_node():
@@ -221,9 +230,9 @@ async def test_fetch_customer_returns_node():
 async def test_fetch_customer_returns_none_when_not_found():
     client = make_client()
     client.client = AsyncMock()
-    client.client.post.return_value = make_response({
-        "data": {"customers": {"edges": []}}
-    })
+    client.client.post.return_value = make_response(
+        {"data": {"customers": {"edges": []}}}
+    )
 
     result = await client.fetch_customer("nobody@example.com")
 
@@ -243,6 +252,7 @@ async def test_fetch_customer_sends_email_query():
 
 
 # ── refund_order ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_refund_order_with_explicit_line_items():
@@ -292,14 +302,18 @@ async def test_refund_order_sends_correct_order_gid():
 async def test_refund_order_raises_on_user_errors():
     client = make_client()
     client.client = AsyncMock()
-    client.client.post.return_value = make_response({
-        "data": {
-            "refundCreate": {
-                "refund": None,
-                "userErrors": [{"field": "orderId", "message": "Order already refunded"}],
+    client.client.post.return_value = make_response(
+        {
+            "data": {
+                "refundCreate": {
+                    "refund": None,
+                    "userErrors": [
+                        {"field": "orderId", "message": "Order already refunded"}
+                    ],
+                }
             }
         }
-    })
+    )
 
     line_items = [{"line_item_id": "111", "quantity": 1}]
     with pytest.raises(Exception, match="Order already refunded"):
@@ -328,13 +342,16 @@ async def test_refund_order_partial_shipping_amount():
     client.client.post.return_value = make_response({"data": REFUND_DATA})
 
     line_items = [{"line_item_id": "111", "quantity": 1}]
-    await client.refund_order(order_id="4821", line_items=line_items, shipping_amount="5.00")
+    await client.refund_order(
+        order_id="4821", line_items=line_items, shipping_amount="5.00"
+    )
 
     call_json = client.client.post.call_args.kwargs["json"]
     assert call_json["variables"]["input"]["shipping"] == {"amount": "5.00"}
 
 
 # ── context manager ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_context_manager_closes_client():

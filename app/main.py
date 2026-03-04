@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import ai_actions, emails, shopify
 
-
 app = FastAPI()
 
 
@@ -17,4 +16,3 @@ app.add_middleware(
 app.include_router(emails.router)
 app.include_router(ai_actions.router)
 app.include_router(shopify.router)
-

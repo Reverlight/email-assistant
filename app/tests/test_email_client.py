@@ -87,8 +87,8 @@ async def test_sync_emails(async_client: AsyncClient, async_db: AsyncSession):
         threads.get.return_value.execute.side_effect = [
             make_thread_response(tid, tid) for tid in thread_ids
         ]
-        
-        response = await async_client.post(app.url_path_for('emails:sync_emails'))
+
+        response = await async_client.post(app.url_path_for("emails:sync_emails"))
 
     assert response.status_code == 201, response.json()
     data = response.json()
@@ -99,18 +99,21 @@ async def test_sync_emails(async_client: AsyncClient, async_db: AsyncSession):
     assert len(emails) == 10
     assert emails[0].text == html_body
 
+
 @pytest.mark.asyncio
 async def test_get_emails(async_client: AsyncClient, async_db: AsyncSession):
     # Seed emails across 2 threads
     for i in range(5):
-        await EmailFactory.create(async_db,
+        await EmailFactory.create(
+            async_db,
             google_id=f"google_id_{i}",
             thread_id="thread_abc",
             title=f"Subject {i}",
             received_date=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
         )
     for i in range(5, 10):
-        await EmailFactory.create(async_db,
+        await EmailFactory.create(
+            async_db,
             google_id=f"google_id_{i}",
             thread_id="thread_xyz",
             title=f"Subject {i}",
@@ -141,4 +144,7 @@ async def test_get_emails(async_client: AsyncClient, async_db: AsyncSession):
 
     # Check message shape
     msg = threads[0]["messages"][0]
-    assert all(k in msg for k in ("id", "google_id", "sender", "title", "text", "received_date"))
+    assert all(
+        k in msg
+        for k in ("id", "google_id", "sender", "title", "text", "received_date")
+    )

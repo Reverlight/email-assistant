@@ -2,28 +2,17 @@ from fastapi import APIRouter
 import asyncio
 from collections import defaultdict
 import datetime
-import os
 
-from fastapi import Depends, FastAPI, HTTPException
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from httplib2 import Credentials
+from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.openai_client import OpenAIClient
 from app.db import get_async_db_session
 from app.email_client import EmailClient
 from app.models import Email
-from app.settings import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID
-from app.shopify_client import ShopifyClient
 
-
-router = APIRouter(prefix='/emails', tags=["emails"])
+router = APIRouter(prefix="/emails", tags=["emails"])
 
 
 class EmailCreate(BaseModel):
@@ -34,7 +23,7 @@ class EmailCreate(BaseModel):
     received_date: datetime.datetime
 
 
-@router.post("", status_code=201, name='emails:sync_emails')
+@router.post("", status_code=201, name="emails:sync_emails")
 async def sync_emails(db: AsyncSession = Depends(get_async_db_session)):
     """
     Fetch latest emails from Gmail and save new ones to the DB.
@@ -70,7 +59,7 @@ async def sync_emails(db: AsyncSession = Depends(get_async_db_session)):
     return {"saved": saved, "skipped": skipped}
 
 
-@router.get("", name='emails:get_emails')
+@router.get("", name="emails:get_emails")
 async def get_emails(db: AsyncSession = Depends(get_async_db_session)):
     """
     Return all emails grouped by thread, ordered by most recent activity.
