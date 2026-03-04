@@ -1,4 +1,5 @@
 import base64
+from email.mime.text import MIMEText
 import os
 from datetime import datetime, timezone
 
@@ -110,3 +111,26 @@ class EmailClient:
                     return result
 
         return ""
+
+    def send_reply(self, thread_id: str, to: str, subject: str, text: str) -> None:
+        """
+        Send a reply in an existing Gmail thread.
+
+        Args:
+            thread_id: Gmail thread ID to reply into
+            to: Recipient address (usually the original sender)
+            subject: Original subject — Re: prefix added automatically if missing
+            text: Plain text body of the reply
+        """
+        subject_line = subject if subject.startswith("Re:") else f"Re: {subject}"
+
+        message = MIMEText(text)
+        message["to"] = to
+        message["subject"] = subject_line
+
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        self.service.users().messages().send(
+            userId="me",
+            body={"raw": raw, "threadId": thread_id},
+        ).execute()

@@ -53,7 +53,7 @@ Email thread:
 """
 
 
-class ChatGPTClient:
+class OpenAIClient:
     def __init__(self):
         if not OPENAI_API_KEY:
             raise Exception("OPENAI_API_KEY is not set")
